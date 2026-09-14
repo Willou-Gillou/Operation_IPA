@@ -29,38 +29,48 @@
             width: 100%;
         }
         h1 { font-size: 24px; margin-bottom: 10px; }
-        p { color: #666; margin-bottom: 30px; font-size: 14px; }
+        p { color: #666; margin-bottom: 20px; font-size: 14px; }
         
-        .upload-btn-wrapper {
+        /* Nouvelle zone de Glisser-Déposer */
+        .drop-zone {
             position: relative;
-            overflow: hidden;
-            display: inline-block;
+            border: 2px dashed #007aff;
+            border-radius: 12px;
+            padding: 40px 20px;
+            background-color: #f9fbff;
+            transition: background-color 0.3s, border-color 0.3s;
+            margin-bottom: 20px;
         }
-        .btn {
-            border: none;
-            color: white;
-            background-color: #007aff;
-            padding: 12px 24px;
-            border-radius: 8px;
-            font-size: 16px;
+        .drop-zone:hover {
+            background-color: #eef4ff;
+            border-color: #005bb5;
+        }
+        .drop-zone p.main-text {
+            font-size: 18px;
             font-weight: bold;
-            cursor: pointer;
-            transition: background 0.3s;
+            color: #007aff;
+            margin: 0 0 10px 0;
         }
-        .btn:hover { background-color: #005bb5; }
-        .upload-btn-wrapper input[type=file] {
-            font-size: 100px;
+        .drop-zone p.sub-text {
+            font-size: 14px;
+            color: #666;
+            margin: 0;
+        }
+        
+        /* L'input est étiré sur toute la zone et rendu invisible */
+        .drop-zone input[type=file] {
             position: absolute;
-            left: 0;
             top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
             opacity: 0;
             cursor: pointer;
         }
         
-        #status { margin-top: 20px; font-weight: bold; color: #007aff; }
+        #status { font-weight: bold; color: #007aff; margin-top: 10px; }
         .warning { font-size: 12px; color: #999; margin-top: 20px; }
 
-        /* Nouvelle section d'explication */
         .explanation {
             margin-top: 40px;
             padding-top: 25px;
@@ -76,13 +86,8 @@
             margin-bottom: 12px;
             color: #111;
         }
-        .explanation ul {
-            padding-left: 20px;
-            margin-top: 0;
-        }
-        .explanation li {
-            margin-bottom: 8px;
-        }
+        .explanation ul { padding-left: 20px; margin-top: 0; }
+        .explanation li { margin-bottom: 8px; }
         .privacy-badge {
             display: block;
             margin-top: 15px;
@@ -99,10 +104,12 @@
 
 <div class="container">
     <h1>Convertisseur .xcarchive ➔ .ipa</h1>
-    <p>Sélectionnez votre dossier <b>.xcarchive</b> pour générer le fichier d'installation.</p>
+    <p>Générez votre fichier d'installation en un instant.</p>
 
-    <div class="upload-btn-wrapper">
-        <button class="btn">Choisir le .xcarchive</button>
+    <!-- Zone de Drag & Drop -->
+    <div class="drop-zone">
+        <p class="main-text">Glissez-déposez votre .xcarchive ici</p>
+        <p class="sub-text">(Solution idéale si le fichier est grisé lors du clic)</p>
         <input type="file" id="folderInput" webkitdirectory directory multiple />
     </div>
 
@@ -117,7 +124,7 @@
             <li><strong>Empaquetage :</strong> Votre application est placée dans ce dossier, puis l'ensemble est compressé au format ZIP.</li>
             <li><strong>Génération :</strong> L'extension de l'archive est renommée en <code>.ipa</code> et le téléchargement démarre.</li>
         </ul>
-        <span class="privacy-badge">🔒 100% Local : Tout le traitement s'effectue dans votre navigateur. Aucun fichier n'est envoyé sur un serveur distant.</span>
+        <span class="privacy-badge">🔒 100% Local : Tout le traitement s'effectue dans votre navigateur. Aucun fichier n'est envoyé sur internet.</span>
     </div>
 </div>
 
@@ -138,6 +145,7 @@
             const file = files[i];
             const path = file.webkitRelativePath; 
 
+            // On cherche les fichiers qui sont dans "Products/Applications/NomDeLapp.app/"
             const match = path.match(/Products\/Applications\/([^/]+\.app)\/(.*)$/);
             
             if (match) {
