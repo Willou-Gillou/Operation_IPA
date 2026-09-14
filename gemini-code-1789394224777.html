@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Convertisseur .xcarchive vers .ipa</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f4f4f9;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            text-align: center;
+            max-width: 550px;
+            width: 100%;
+        }
+        h1 { font-size: 24px; margin-bottom: 10px; }
+        p { color: #666; margin-bottom: 30px; font-size: 14px; }
+        
+        .upload-btn-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+        }
+        .btn {
+            border: none;
+            color: white;
+            background-color: #007aff;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .btn:hover { background-color: #005bb5; }
+        .upload-btn-wrapper input[type=file] {
+            font-size: 100px;
+            position: absolute;
+            left: 0;
+            top: 0;
+            opacity: 0;
+            cursor: pointer;
+        }
+        
+        #status { margin-top: 20px; font-weight: bold; color: #007aff; }
+        .warning { font-size: 12px; color: #999; margin-top: 20px; }
+
+        /* Nouvelle section d'explication */
+        .explanation {
+            margin-top: 40px;
+            padding-top: 25px;
+            border-top: 1px solid #eaeaea;
+            text-align: left;
+            font-size: 14px;
+            color: #444;
+            line-height: 1.5;
+        }
+        .explanation strong.title {
+            display: block;
+            font-size: 16px;
+            margin-bottom: 12px;
+            color: #111;
+        }
+        .explanation ul {
+            padding-left: 20px;
+            margin-top: 0;
+        }
+        .explanation li {
+            margin-bottom: 8px;
+        }
+        .privacy-badge {
+            display: block;
+            margin-top: 15px;
+            padding: 10px;
+            background-color: #e8f5e9;
+            color: #2e7d32;
+            border-radius: 6px;
+            text-align: center;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Convertisseur .xcarchive ➔ .ipa</h1>
+    <p>Sélectionnez votre dossier <b>.xcarchive</b> pour générer le fichier d'installation.</p>
+
+    <div class="upload-btn-wrapper">
+        <button class="btn">Choisir le .xcarchive</button>
+        <input type="file" id="folderInput" webkitdirectory directory multiple />
+    </div>
+
+    <div id="status">En attente de fichier...</div>
+    <div class="warning">Note : L'archive doit déjà contenir la signature finale (Distribution/Ad-Hoc).</div>
+
+    <div class="explanation">
+        <strong class="title">Que fait cette application ?</strong>
+        <ul>
+            <li><strong>Extraction :</strong> Le script localise votre fichier <code>.app</code> caché dans l'arborescence (<code>Products/Applications/</code>).</li>
+            <li><strong>Formatage :</strong> Il génère un dossier virtuel nommé <code>Payload</code>, une structure requise par iOS.</li>
+            <li><strong>Empaquetage :</strong> Votre application est placée dans ce dossier, puis l'ensemble est compressé au format ZIP.</li>
+            <li><strong>Génération :</strong> L'extension de l'archive est renommée en <code>.ipa</code> et le téléchargement démarre.</li>
+        </ul>
+        <span class="privacy-badge">🔒 100% Local : Tout le traitement s'effectue dans votre navigateur. Aucun fichier n'est envoyé sur un serveur distant.</span>
+    </div>
+</div>
+
+<script>
+    document.getElementById('folderInput').addEventListener('change', async function(event) {
+        const files = event.target.files;
+        if (files.length === 0) return;
+
+        const statusDiv = document.getElementById('status');
+        statusDiv.style.color = "#007aff";
+        statusDiv.innerText = "Analyse du dossier en cours...";
+
+        const zip = new JSZip();
+        let appName = "";
+        let foundAppFiles = 0;
+
+        for (let i = 0; i < files.length; i++) {
+            const file = files[i];
+            const path = file.webkitRelativePath; 
+
+            const match = path.match(/Products\/Applications\/([^/]+\.app)\/(.*)$/);
+            
+            if (match) {
+                appName = match[1]; 
+                const relativeFilePath = match[2]; 
+
+                zip.file(`Payload/${appName}/${relativeFilePath}`, file);
+                foundAppFiles++;
+            }
+        }
+
+        if (foundAppFiles === 0) {
+            statusDiv.style.color = "red";
+            statusDiv.innerText = "Erreur : Aucune application (.app) trouvée dans ce dossier. Est-ce bien un .xcarchive valide ?";
+            return;
+        }
+
+        statusDiv.innerText = `Création de l'IPA pour ${appName} (Compression en cours...)`;
+
+        try {
+            const zipContent = await zip.generateAsync({ 
+                type: "blob",
+                compression: "DEFLATE",
+                compressionOptions: { level: 6 } 
+            });
+
+            statusDiv.style.color = "green";
+            statusDiv.innerText = "Terminé ! Téléchargement en cours...";
+
+            const finalName = appName.replace('.app', '') + '.ipa';
+            const downloadLink = document.createElement('a');
+            downloadLink.href = URL.createObjectURL(zipContent);
+            downloadLink.download = finalName;
+            
+            document.body.appendChild(downloadLink);
+            downloadLink.click();
+            document.body.removeChild(downloadLink);
+
+        } catch (error) {
+            statusDiv.style.color = "red";
+            statusDiv.innerText = "Erreur lors de la création du fichier : " + error.message;
+        }
+    });
+</script>
+
+</body>
+</html>
